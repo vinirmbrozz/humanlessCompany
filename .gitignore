@@ -1,0 +1,37 @@
+# ── Segredos e variáveis de ambiente ──
+.env
+.env.*
+!.env.example
+
+# ── Docker ──
+docker-compose.override.yml
+
+# ── Patches e arquivos temporários ──
+*.patch
+*.orig
+*.bak
+*.tmp
+*.swp
+
+# ── Logs ──
+*.log
+
+# ── Node (caso rode algo local) ──
+node_modules/
+npm-debug.log*
+
+# ── IDE / Editor ──
+.vscode/
+.idea/
+*.suo
+*.user
+*.sln.docstates
+
+# ── OS ──
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# ── Claude / Gemini ──
+.claude/
+.gemini/
