@@ -19,7 +19,10 @@ services:
     restart: unless-stopped
 
   paperclip:
-    image: node:20-bookworm-slim
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: paperclip-runtime:latest
     container_name: paperclip
     working_dir: /root
     environment:
@@ -47,18 +50,14 @@ services:
       - paperclip_claude:/root/.claude
       # Pasta REAL do userservice montada SOMENTE-LEITURA, apenas como fonte de cópia.
       # O agente nunca escreve aqui (:ro = read-only).
-      - "${TRUTHER_DIR}/userservice:/seed/userservice:ro"
-      - "${TRUTHER_DIR}/data-rudder-provider:/seed/data-rudder-provider:ro"
+      - "${DIR_PATH}/userservice:/seed/userservice:ro"
+      - "${DIR_PATH}/data-rudder-provider:/seed/data-rudder-provider:ro"
       # Cópias de trabalho isoladas (volume Docker, fora do OneDrive). O agente trabalha AQUI.
       # No Paperclip, aponte o cwd do workspace para: /work/userservice
       - paperclip_work:/work
-    # Bootstrap: install git + the Claude Code CLI (the `claude` binary the
-    # claude-local adapter looks for in PATH), then start Paperclip.
-    command:
-      - sh
-      - -c
-      - >
-        apt-get update && apt-get install -y --no-install-recommends git ca-certificates && npm i -g @anthropic-ai/claude-code && claude --version && git config --global user.name 'Vinícius Rodrigues' && git config --global user.email 'vinicius@truther.to' && npx -y paperclipai onboard --yes --bind lan
+    # git + Claude Code + identidade git já vêm na imagem (ver Dockerfile) — sobe rápido.
+    # paperclipai continua via npx (auto-atualiza; fica cacheado no volume paperclip_npm).
+    command: ["sh", "-c", "npx -y paperclipai onboard --yes --bind lan"]
     restart: unless-stopped
 
 volumes:

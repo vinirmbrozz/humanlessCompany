@@ -35,7 +35,7 @@ O modelo organizacional simula uma empresa *human-less*: **CEO → CTO → Engen
 | `POSTGRES_USER` | Usuário do banco PostgreSQL |
 | `POSTGRES_PASSWORD` | Senha do banco PostgreSQL |
 | `POSTGRES_DB` | Nome do banco |
-| `TRUTHER_DIR` | Caminho local da pasta `Truther` (fonte dos projetos) |
+| `DIR_PATH` | Caminho local da pasta com todos os projetos |
 | `ANTHROPIC_API_KEY` | Chave da API Anthropic *(preencha esta **ou** a de baixo)* |
 | `CLAUDE_CODE_OAUTH_TOKEN` | Token OAuth do Claude *(alternativa à chave API)* |
 
@@ -45,7 +45,7 @@ O modelo organizacional simula uma empresa *human-less*: **CEO → CTO → Engen
 ┌─────────────────────────────────────────────────┐
 │  Host (Windows)                                 │
 │                                                 │
-│  Truther/<projeto>/  ──(read-only)──►  /seed/   │
+│  DIR_PATH/<projeto>/  ──(read-only)──►  /seed/  │
 │                                                 │
 │  ┌────────────────────────────────────────────┐ │
 │  │  Docker                                    │ │
@@ -68,7 +68,7 @@ O modelo organizacional simula uma empresa *human-less*: **CEO → CTO → Engen
 1. Adicione o mount no `docker-compose.yml` (seção `volumes` do serviço `paperclip`):
 
    ```yaml
-   - "${TRUTHER_DIR}/<projeto>:/seed/<projeto>:ro"
+   - "${DIR_PATH}/<projeto>:/seed/<projeto>:ro"
    ```
 
 2. Recrie o container e espelhe a cópia de trabalho:

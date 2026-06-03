@@ -8,42 +8,37 @@ escrevem código**; a execução técnica cai em agentes sêniores. Tudo sob tut
 
 ### 1. Segredo no OneDrive
 O arquivo `.env` contém o `CLAUDE_CODE_OAUTH_TOKEN` e está dentro de
-`OneDrive\Documentos\Truther\paperclip`, ou seja, **o token sincroniza pra nuvem**.
+`OneDrive\Documentos\DIR_PATH\paperclip`, ou seja, **o token sincroniza pra nuvem**.
 - Ação recomendada: mover o projeto `paperclip/` para fora do OneDrive (ex.: `C:\paperclip`)
   e/ou usar um gerenciador de segredos.
 - O token atual já foi exposto em texto plano → **rotacionar** quando for endereçar isso
   (gerar novo com `claude setup-token` e substituir no `.env`).
 
-### 2. Bootstrap pesado a cada restart
-Hoje o `docker-compose.yml` instala `git` + `@anthropic-ai/claude-code` via `apt-get`/`npm`
-no `command`, então **roda a cada restart do container** (lento).
-- Ação recomendada: trocar por um **Dockerfile** próprio que instala `git` e o Claude Code
-  em build-time (sobe rápido, reproduzível).
 
-## Workspace do projeto userservice (decidido)
-- **Escopo**: NÃO montar a pasta Truther inteira. Apenas `userservice`.
+## Workspace do projeto (decidido)
+- **Escopo**: NÃO montar a pasta inteira. Apenas `<projeto>`.
 - **Modelo (decidido): CÓPIA isolada — a pasta real NUNCA é tocada.**
-  - Pasta real montada SOMENTE-LEITURA: `C:/.../Truther/userservice` → `/seed/userservice:ro`
+  - Pasta real montada SOMENTE-LEITURA: `C:/.../DIR_PATH/<projeto>` → `/seed/<projeto>:ro`
     (escrita do agente é bloqueada pelo SO — verificado).
-  - Cópia de trabalho num volume Docker (fora do OneDrive): `/work/userservice` (volume `paperclip_work`).
+  - Cópia de trabalho num volume Docker (fora do OneDrive): `/work/<projeto>` (volume `paperclip_work`).
     O agente trabalha AQUI, in-place na cópia.
   - `node_modules` é excluído da cópia (o do host é Windows; quebra no Linux — o agente reinstala).
   - O remoto `origin` foi REMOVIDO da cópia → zero destino de push.
-- **Paperclip**: projeto renomeado para `user-service`; apontar o cwd do workspace para
-  **`/work/userservice`** (a cópia), NÃO para `/seed`.
+- **Paperclip**: projeto renomeado para `<projeto>`; apontar o cwd do workspace para
+  **`/work/<projeto>`** (a cópia), NÃO para `/seed`.
 - **Refresh da cópia** (quando o repo real mudar), rodar:
-  `docker exec paperclip sh -c 'rm -rf /work/userservice && mkdir -p /work/userservice && tar -C /seed/userservice --exclude=node_modules -cf - . | tar -C /work/userservice -xf - && cd /work/userservice && git remote remove origin 2>/dev/null; true'`
+  `docker exec paperclip sh -c 'rm -rf /work/<projeto> && mkdir -p /work/<projeto> && tar -C /seed/<projeto> --exclude=node_modules -cf - . | tar -C /work/<projeto> -xf - && cd /work/<projeto> && git remote remove origin 2>/dev/null; true'`
 - **Regra inegociável**: agentes **nunca fazem push** e só commitam na branch isolada da task.
-  Cláusula no `/work/userservice/AGENTS.md` (tempo de execução) reforça.
-- **Alerta**: a cópia inclui `.env` com segredos. Revisar/remover de `/work/userservice/.env`
+  Cláusula no `/work/<projeto>/AGENTS.md` (tempo de execução) reforça.
+- **Alerta**: a cópia inclui `.env` com segredos. Revisar/remover de `/work/<projeto>/.env`
   antes de soltar um sênior, se não quiser expor credenciais ao agente.
 
 ## Adicionar um projeto novo (espelho) — 3 passos
 Todo projeto novo segue o mesmo modelo de CÓPIA isolada do userservice. Paths e senhas
-vêm do `.env` (`${TRUTHER_DIR}` para a pasta base).
+vêm do `.env` (`${DIR_PATH}` para a pasta base).
 
 1. **Mount `:ro` no `docker-compose.yml`** (serviço paperclip, em volumes):
-   `- "${TRUTHER_DIR}/<projeto>:/seed/<projeto>:ro"` e depois `docker compose up -d`.
+   `- "${DIR_PATH}/<projeto>:/seed/<projeto>:ro"` e depois `docker compose up -d`.
 2. **Criar a cópia de trabalho** em `/work/<projeto>` (passo fácil de esquecer — sem ele a
    criação de issue dá 422 porque o cwd não existe):
    `.\espelhar.ps1 -Projeto <projeto>`   (refresh: `.\espelhar.ps1 -Projeto <projeto> -Atualizar`)
@@ -66,11 +61,15 @@ do repo real), `.\descartar.ps1 -Projeto <p>` (apagar a branch; `-AlsoCopy` limp
   `docker exec -i paperclip-db psql -U paperclip -d paperclip -c "ALTER USER paperclip PASSWORD '<nova>';"`
   e depois `docker compose up -d` pra recriar o paperclip com o novo DATABASE_URL.
 - **Auth do Claude**: assinatura via `CLAUDE_CODE_OAUTH_TOKEN` (headless), no `.env`.
-- **Identidade git dos agentes**: setada como `Vinícius Rodrigues <vinicius@truther.to>`
-  via `git config --global` dentro do container (sobrevive ao refresh da cópia) E no bootstrap
-  do `docker-compose.yml` (sobrevive à recriação do container). Sem isso, commits saíam com a
-  identidade herdada do `.git` copiado (ex.: o dev original "FelpFreitas"). Para corrigir um
-  commit já feito: `GIT_COMMITTER_NAME/EMAIL=... git commit --amend --author="..." --no-edit`.
+- **Imagem própria (Dockerfile)**: `git` + Claude Code CLI + identidade git são instalados em
+  BUILD-TIME (imagem `paperclip-runtime:latest`), não mais no `command` a cada restart. O
+  serviço `paperclip` usa `build: .` no compose; o `command` virou só `npx -y paperclipai onboard`.
+  Rebuild quando mudar o Dockerfile: `docker compose up -d --build paperclip`. (Atualizar o
+  Claude Code = rebuild; o `RUN claude --version` no fim do Dockerfile falha o build se quebrar.)
+- **Identidade git dos agentes**: `Vinícius Rodrigues <vinicius@truther.to>`, baked no Dockerfile
+  via `git config --global` (sobrevive a recriação E ao refresh da cópia, que cai no global).
+  Sem isso, commits saíam com a identidade herdada do `.git` copiado (ex.: o dev "FelpFreitas").
+  Corrigir um commit já feito: `GIT_COMMITTER_NAME/EMAIL=... git commit --amend --author="..." --no-edit`.
 - **Root + sandbox**: container roda como root; `IS_SANDBOX=1` permite que o adapter
   `claude-local` use `--dangerously-skip-permissions` como root.
 - **Acesso a repos**: os agentes NÃO têm acesso ao filesystem do fundador. Projetos das
