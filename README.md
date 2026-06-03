@@ -1,6 +1,6 @@
 # Paperclip
 
-Runtime de orquestração de agentes IA para os portfólios **Truther** (fintech/cripto, KYC/AML) e **PSA** (integração ERP Sienge).
+Runtime de orquestração de agentes IA para os portfólios **Fintech** (fintech/cripto, KYC/AML) e **Data Integration** (integração ERP Sienge).
 
 O modelo organizacional simula uma empresa *human-less*: **CEO → CTO → Engenheiros Sêniores**, onde CEO e CTO apenas delegam — a execução técnica fica com os agentes sêniores, sob supervisão do fundador.
 
