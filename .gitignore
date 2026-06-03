@@ -35,3 +35,6 @@ Desktop.ini
 # ── Claude / Gemini ──
 .claude/
 .gemini/
+
+# ── Backups do Paperclip ──
+backups/

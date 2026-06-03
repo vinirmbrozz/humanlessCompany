@@ -4,15 +4,31 @@ Runtime de orquestração para gerir os portfólios **Truther** (fintech/cripto,
 e **PSA** (integração ERP Sienge). Regra organizacional: **CEO e CTO só delegam, nunca
 escrevem código**; a execução técnica cai em agentes sêniores. Tudo sob tutela do fundador.
 
-## ⚠️ Pendências importantes (resolver depois)
+## ⚠️ Pendências
 
-### 1. Segredo no OneDrive
-O arquivo `.env` contém o `CLAUDE_CODE_OAUTH_TOKEN` e está dentro de
-`OneDrive\Documentos\DIR_PATH\paperclip`, ou seja, **o token sincroniza pra nuvem**.
-- Ação recomendada: mover o projeto `paperclip/` para fora do OneDrive (ex.: `C:\paperclip`)
-  e/ou usar um gerenciador de segredos.
-- O token atual já foi exposto em texto plano → **rotacionar** quando for endereçar isso
-  (gerar novo com `claude setup-token` e substituir no `.env`).
+### 1. Trava física do CTO (camada 3) — workspace READ-ONLY ("vejo, não edito")
+Hoje o "CTO só delega, nunca escreve código" é só **instrução** (no `AGENTS.md` do CTO) — não
+há barreira real: o adapter é `claude_local` com acesso total a arquivos/git, e `permissions`
+só tem `canAssignTasks`/`canCreateAgents`. Já aconteceu de o CTO **executar** uma task (criou e
+commitou SQL) ao receber "faça a correção" — corrigido por instrução (cláusula anti-override),
+mas a regra ainda depende do modelo "se comportar".
+- **Objetivo**: tornar IMPOSSÍVEL o CTO editar código — **sem** torná-lo cego. O CTO precisa
+  continuar VENDO o código real (pra revisar arquitetura, diffs/PRs dos sêniores, escrever DoD
+  preciso). O modelo é **read-only**: "entendo, vejo, mas não edito". NÃO é "remover o workspace"
+  (isso o deixaria decidindo no escuro, menos técnico).
+- **Caminho a investigar**: apontar o workspace do CTO para um mount **`:ro`** (mesmo mecanismo
+  do `/seed/<projeto>`) — leitura total, `write`/`commit` bloqueados pelo SO. Sêniores seguem com
+  a cópia gravável em `/work`. Avaliar como o Paperclip escopa workspace por agente
+  (`projects.env` / `execution_workspace_policy`, e o cwd que o adapter recebe).
+- **Ressalva a validar**: o Paperclip pode tentar escrever no `cwd` (worktree, logs, temp) e
+  engasgar num diretório read-only — garantir que ele só LÊ ali e grava estado em outro lugar.
+
+## Decisão: projeto fica no OneDrive (risco aceito)
+O projeto vive em `OneDrive\Documentos\DIR_PATH\paperclip`. O `.env` (token do Claude + senha
+do banco) e a pasta `backups\` **sincronizam pra nuvem** — risco **aceito pelo fundador**: a
+estrutura está montada e NÃO deve ser movida. Não sugerir mover o projeto/`.env` pra fora do
+OneDrive. (Se um dia quiser endurecer: rotacionar o token com `claude setup-token` + trocar a
+senha do banco — mas é escolha do fundador, não pendência.)
 
 
 ## Workspace do projeto (decidido)
@@ -86,6 +102,18 @@ do repo real), `.\descartar.ps1 -Projeto <p>` (apagar a branch; `-AlsoCopy` limp
 - Acesso rápido por CLI (sem DBeaver): `docker exec -i paperclip-db psql -U paperclip -d paperclip`
   (use SEMPRE `-i` quando mandar SQL via heredoc — sem ele o stdin não chega no psql).
 - ⚠️ É o banco VIVO do Paperclip — editar dados direto pode confundir o estado dele.
+
+## Backup e persistência
+- **Dados moram em volumes Docker**, não na imagem/container: `paperclip_db` (Postgres),
+  `paperclip_home` (`/root/.paperclip` + backups automáticos), `paperclip_work` (cópias).
+  Rebuild/recriar container NÃO apaga nada. **Só `docker compose down -v` ou `docker volume rm`
+  destroem.** Não trocar a versão MAIOR do Postgres (16→17) — o volume não abre em outro major.
+- **Backup manual** (rodar antes de mexidas ousadas): `.\backup.ps1` → gera
+  `backups\paperclip-<timestamp>.sql` (dump byte-exato via `pg_dump` no container + `docker cp`),
+  com rotação (`-Keep N`, default 20). Não há wrapper automático no `up` — é manual, por escolha.
+- **Restaurar**: `Get-Content .\backups\<arquivo>.sql | docker exec -i paperclip-db psql -U paperclip -d paperclip`.
+- O Paperclip também faz backup automático interno (60min) em `/root/.paperclip/.../data/backups`,
+  mas isso vive no mesmo volume — o `backup.ps1` tira a cópia pra FORA do Docker.
 
 ## Como alterar as instruções (AGENTS.md) de um agente
 - As instruções de cada agente são um ARQUIVO no volume do container (não no host):
