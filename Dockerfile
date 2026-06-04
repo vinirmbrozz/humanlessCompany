@@ -8,9 +8,9 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends git ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# CLIs dos agentes: `claude` (adapter claude-local) e `codex` (adapter codex-local).
+# CLIs dos agentes: `claude` (claude-local), `codex` (codex-local), `gemini` (gemini-local).
 # Cada adapter procura seu binário no PATH.
-RUN npm install -g @anthropic-ai/claude-code @openai/codex \
+RUN npm install -g @anthropic-ai/claude-code @openai/codex @google/gemini-cli \
     && npm cache clean --force
 
 # Identidade git dos agentes (commits saem no nome do fundador, não do dev herdado).
@@ -20,4 +20,4 @@ RUN git config --global user.name "Vinícius Rodrigues" \
 WORKDIR /root
 
 # Sanity: falha o build se algum CLI não ficou resolvível no PATH.
-RUN claude --version && codex --version
+RUN claude --version && codex --version && gemini --version

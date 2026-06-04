@@ -27,8 +27,11 @@
   - `claude_local` — Claude Code. Auth: `CLAUDE_CODE_OAUTH_TOKEN` (assinatura) ou `ANTHROPIC_API_KEY`.
     Bypass de root via `IS_SANDBOX=1`.
   - `codex_local` — Codex CLI (OpenAI). Auth: `OPENAI_API_KEY` (sk-proj-…, billing por token).
-    Bypass de root via `CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX=1`.
-  - (a imagem tb traz adapters para gemini/grok/cursor/opencode — não configurados.)
+    Bypass de root via `CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX=1`. ⛔ hoje OFFLINE (cota OpenAI).
+  - `gemini_local` — Gemini CLI (Google, `@google/gemini-cli`). Auth: `GEMINI_API_KEY` (env direto,
+    sem login). Precisa de `GEMINI_CLI_TRUST_WORKSPACE=true` (senão o CLI pede trust em headless).
+    ✅ testado e funcionando.
+  - (a imagem tb traz adapters para grok/cursor — não configurados.)
   Para usar Codex: criar/editar o agente na UI escolhendo o adapter **Codex** (`codex_local`).
   ⚠️ No 1º run o adapter faz um "hello probe" de auth — se a key for inválida/sem crédito, falha aí.
 - **Identidade git dos agentes**: `Vinícius Rodrigues <vinicius@truther.to>`, baked no Dockerfile

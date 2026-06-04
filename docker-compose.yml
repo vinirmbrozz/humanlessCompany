@@ -38,6 +38,10 @@ services:
       CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
       # Codex (OpenAI) — usado pelo adapter codex-local.
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # Gemini (Google) — usado pelo adapter gemini-local.
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      # Confia no workspace em modo headless (senão o gemini CLI bloqueia pedindo trust).
+      GEMINI_CLI_TRUST_WORKSPACE: "true"
       # Container runs as root; estes marcam o env como sandbox para os adapters
       # usarem o modo sem aprovação como root (claude: IS_SANDBOX; codex: bypass próprio).
       IS_SANDBOX: "1"
