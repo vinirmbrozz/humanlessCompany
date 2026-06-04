@@ -2,10 +2,10 @@
 # Sua master e sua pasta ficam intactas. Se um 'git am' tiver ficado pela metade, aborta ele.
 # Com -AlsoCopy, tambem reseta a CÓPIA no container de volta para a base.
 #
-# Uso:
-#   .\descartar.ps1 -Projeto userservice
-#   .\descartar.ps1 -Projeto data-rudder-provider -LocalBranch feat/x
-#   .\descartar.ps1 -Projeto userservice -AlsoCopy        # tambem limpa a copia (/work)
+# Uso (a partir da raiz do repo):
+#   .\scripts\descartar.ps1 -Projeto userservice
+#   .\scripts\descartar.ps1 -Projeto data-rudder-provider -LocalBranch feat/x
+#   .\scripts\descartar.ps1 -Projeto userservice -AlsoCopy   # tambem limpa a copia (/work)
 param(
   [Parameter(Mandatory = $true)][string]$Projeto,
   [string]$LocalBranch = "revisao-agente",
@@ -15,7 +15,10 @@ param(
 )
 $ErrorActionPreference = "Stop"
 
-$repo = Join-Path (Split-Path $PSScriptRoot -Parent) $Projeto
+# scripts\ -> paperclip\ -> base dos projetos (ex.: ...\Truther)
+$PaperclipRoot = Split-Path $PSScriptRoot -Parent
+$ProjectsBase  = Split-Path $PaperclipRoot -Parent
+$repo = Join-Path $ProjectsBase $Projeto
 $Copy = "/work/$Projeto"
 if (-not (Test-Path $repo)) { throw "Repo real nao encontrado em: $repo" }
 
@@ -44,7 +47,7 @@ try {
 finally { Pop-Location }
 
 # limpa o patch gerado pelo puxar.ps1, se existir
-$patch = Join-Path $PSScriptRoot "$Projeto-changes.patch"
+$patch = Join-Path $PaperclipRoot "$Projeto-changes.patch"
 if (Test-Path $patch) { Remove-Item $patch; Write-Host "Patch temporario removido." -ForegroundColor DarkGray }
 
 if ($AlsoCopy) {

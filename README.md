@@ -75,7 +75,7 @@ O modelo organizacional simula uma empresa *human-less*: **CEO → CTO → Engen
 
    ```powershell
    docker compose up -d
-   .\espelhar.ps1 -Projeto <projeto>
+   .\scripts\espelhar.ps1 -Projeto <projeto>
    ```
 
 3. No painel do Paperclip, crie o projeto apontando o **cwd** para `/work/<projeto>`.
@@ -83,16 +83,17 @@ O modelo organizacional simula uma empresa *human-less*: **CEO → CTO → Engen
 ### Atualizar a cópia de trabalho
 
 ```powershell
-.\espelhar.ps1 -Projeto <projeto> -Atualizar
+.\scripts\espelhar.ps1 -Projeto <projeto> -Atualizar
 ```
 
 ### Revisar o trabalho de um agente
 
 | Comando | O que faz |
 |---|---|
-| `.\revisar.ps1 -Projeto <p>` | Mostra o diff do que o agente alterou |
-| `.\puxar.ps1 -Projeto <p>` | Traz as mudanças para uma branch nova no repo real |
-| `.\descartar.ps1 -Projeto <p>` | Descarta a branch; use `-AlsoCopy` para limpar a cópia |
+| `.\scripts\revisar.ps1 -Projeto <p>` | Mostra o diff do que o agente alterou |
+| `.\scripts\puxar.ps1 -Projeto <p>` | Traz as mudanças para uma branch nova no repo real |
+| `.\scripts\descartar.ps1 -Projeto <p>` | Descarta a branch; use `-AlsoCopy` para limpar a cópia |
+| `.\scripts\backup.ps1` | Dump do banco para `backups\` |
 
 ## Acesso ao banco (DBeaver)
 
@@ -116,4 +117,6 @@ docker exec -i paperclip-db psql -U paperclip -d paperclip
 
 - **Segurança**: o `.env` contém tokens sensíveis. Ele já está no `.gitignore` — nunca o comite.
 - **Agentes nunca fazem push** e só commitam na branch isolada da task.
-- **Detalhes técnicos** (schema do banco, paths de instruções dos agentes, troubleshooting) estão documentados no [`CLAUDE.md`](./CLAUDE.md).
+- **Instruções de agente / detalhes técnicos**: a fonte única é o [`AGENTS.md`](./AGENTS.md)
+  (índice), com o aprofundamento em [`docs/`](./docs/) — arquitetura, operação e regras do banco.
+  O `CLAUDE.md` é só um ponteiro pro `AGENTS.md` (pro Claude Code).

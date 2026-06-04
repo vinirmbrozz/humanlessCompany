@@ -2,16 +2,16 @@
 #
 # A pasta real entra SOMENTE-LEITURA como /seed/<projeto> (mount no docker-compose);
 # este script gera a cópia em /work/<projeto>, exclui node_modules, remove o remoto git
-# e carimba sua identidade. O agente trabalha na cópia; sua pasta real nunca é tocada.
+# e carimba a identidade do fundador. O agente trabalha na cópia; a pasta real nunca é tocada.
 #
 # Pré-requisitos (uma vez por projeto):
 #   1) No docker-compose.yml, em volumes do serviço paperclip:
-#        - "${TRUTHER_DIR}/<projeto>:/seed/<projeto>:ro"
+#        - "${DIR_PATH}/<projeto>:/seed/<projeto>:ro"
 #   2) docker compose up -d   (pra o /seed/<projeto> aparecer no container)
 #
-# Uso:
-#   .\espelhar.ps1 -Projeto data-rudder-provider            # cria a cópia (erro se já existir)
-#   .\espelhar.ps1 -Projeto data-rudder-provider -Atualizar # refaz a cópia do zero (refresh)
+# Uso (a partir da raiz do repo):
+#   .\scripts\espelhar.ps1 -Projeto data-rudder-provider             # cria a cópia
+#   .\scripts\espelhar.ps1 -Projeto data-rudder-provider -Atualizar  # refresh (refaz do zero)
 param(
   [Parameter(Mandatory = $true)][string]$Projeto,
   [switch]$Atualizar,
@@ -28,7 +28,7 @@ function Inv($cmd) { docker exec $Container sh -c $cmd; if ($LASTEXITCODE -ne 0)
 # 1) o seed (pasta real montada :ro) existe?
 docker exec $Container sh -c "test -d '$seed'" | Out-Null
 if ($LASTEXITCODE -ne 0) {
-  throw "Seed '$seed' nao existe no container. Garanta o mount no docker-compose (TRUTHER_DIR/$Projeto -> /seed/$Projeto:ro) e rode 'docker compose up -d' antes."
+  throw "Seed '$seed' nao existe no container. Garanta o mount no docker-compose (DIR_PATH/$Projeto -> /seed/$Projeto:ro) e rode 'docker compose up -d' antes."
 }
 
 # 2) a copia ja existe?
