@@ -36,9 +36,12 @@ services:
       #   CLAUDE_CODE_OAUTH_TOKEN  -> uses your Claude subscription (run `claude setup-token`)
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
-      # Container runs as root; this marks the env as a sandbox so the
-      # claude-local adapter may use --dangerously-skip-permissions as root.
+      # Codex (OpenAI) — usado pelo adapter codex-local.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # Container runs as root; estes marcam o env como sandbox para os adapters
+      # usarem o modo sem aprovação como root (claude: IS_SANDBOX; codex: bypass próprio).
       IS_SANDBOX: "1"
+      CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX: "1"
     depends_on:
       db:
         condition: service_healthy

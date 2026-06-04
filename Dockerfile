@@ -8,8 +8,9 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends git ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Claude Code CLI: o binário `claude` que o adapter claude-local procura no PATH.
-RUN npm install -g @anthropic-ai/claude-code \
+# CLIs dos agentes: `claude` (adapter claude-local) e `codex` (adapter codex-local).
+# Cada adapter procura seu binário no PATH.
+RUN npm install -g @anthropic-ai/claude-code @openai/codex \
     && npm cache clean --force
 
 # Identidade git dos agentes (commits saem no nome do fundador, não do dev herdado).
@@ -18,5 +19,5 @@ RUN git config --global user.name "Vinícius Rodrigues" \
 
 WORKDIR /root
 
-# Sanity: falha o build se o claude não ficou resolvível no PATH.
-RUN claude --version
+# Sanity: falha o build se algum CLI não ficou resolvível no PATH.
+RUN claude --version && codex --version

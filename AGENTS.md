@@ -16,9 +16,11 @@ do fundador.
 - **Agentes nunca fazem push** e só commitam na branch isolada da task. O fundador decide o merge.
 - **A pasta real do projeto nunca é editada.** O agente trabalha numa CÓPIA (`/work/<projeto>`);
   a pasta real entra somente-leitura (`/seed/<projeto>`). Ver [docs/arquitetura.md](docs/arquitetura.md).
-- **Runtime real = Claude Code** (`@anthropic-ai/claude-code`, `CLAUDE_CODE_OAUTH_TOKEN`,
-  adapter `claude_local`). Docs devem descrever isso; se algum texto disser "Codex" como se fosse
-  a infra, é engano de conversão — corrigir para Claude.
+- **Runtimes de agente disponíveis** (escolhidos por agente em `adapter_type`):
+  `claude_local` (Claude Code — `@anthropic-ai/claude-code`, `CLAUDE_CODE_OAUTH_TOKEN`/`ANTHROPIC_API_KEY`)
+  e `codex_local` (Codex CLI — `@openai/codex`, `OPENAI_API_KEY`). Ambos os CLIs vêm na imagem;
+  detalhes em [docs/operacao.md](docs/operacao.md). (O doc antigo tinha "Codex" trocado por engano
+  de conversão — aquilo era erro de texto; Codex como runtime é uma opção real e explícita.)
 
 ## Mapa do repositório
 
