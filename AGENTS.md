@@ -29,6 +29,7 @@ do fundador.
 | [README.md](README.md) | Onboarding humano (pré-requisitos, início rápido, diagrama) |
 | `AGENTS.md` (este) | Fonte única de instruções de agente + índice |
 | `CLAUDE.md` | Ponteiro `@AGENTS.md` (pro Claude Code carregar isto) |
+| [docs/MEMORY.md](docs/MEMORY.md) | Estado atual, decisões e jornada (continuidade) — leia para retomar |
 | [docs/arquitetura.md](docs/arquitetura.md) | Modelo de cópia isolada, adicionar projeto, fluxo de PR |
 | [docs/operacao.md](docs/operacao.md) | Subir/rebuild, setup, Postgres/DBeaver, backup, scripts |
 | [docs/paperclip-db.md](docs/paperclip-db.md) | Regras do banco, editar AGENTS.md de um agente, IDs |
