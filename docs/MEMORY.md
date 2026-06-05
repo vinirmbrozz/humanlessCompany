@@ -22,6 +22,7 @@ Tudo sob tutela do fundador (**Vinícius Rodrigues <vinicius@truther.to>**).
 | Senior Go Backend | engineer | claude_local | ✅ ativo |
 | Senior Node TypeScript | engineer | claude_local | ✅ ativo |
 | Senior Python | engineer | claude_local | ✅ ativo |
+| Senior Platform Engineer (Contracts & Schema Registry) | engineer | claude_local | ✅ ativo — dono do truther-contracts (protobuf/buf/codegen + Confluent SR) |
 | Senior Codex Engineer | engineer | codex_local | ⛔ offline (cota OpenAI) |
 | Senior QA Engineer | qa | gemini_local | ⛔ offline (free tier Gemini, limite 5 req) |
 
@@ -40,6 +41,17 @@ Para destravar: habilitar **billing pago** no provedor (OpenAI / Google AI Studi
   sem `node_modules`, **sem remoto git** (zero push).
 - Fluxo de PR: agente trabalha em branch isolada → fundador revisa/puxa o diff → decide o merge.
 - **Regra inegociável**: agentes nunca dão push, nunca commitam em branches do fundador.
+
+**Projetos espelhados hoje** (mount `:ro` + cópia em `/work`, todos sob `${DIR_PATH}`):
+
+| Projeto (`-Projeto`) | Stack | Base ref | Observação |
+|---|---|---|---|
+| `userservice` | Fastify + Prisma + Postgres (TS) | `master` | repo com git |
+| `data-rudder-provider` | Go (chi, pgx/v5, sqlc) | `master` | repo com git |
+| `truther-contracts` | protobuf/buf + Node/TS (contratos) | **`main`** | git + origin GitHub (cópia sem remoto); use `-Base main` nos scripts |
+
+O `protocol-buffer` (multi-linguagem, em Truther) **existe mas NÃO está espelhado** (foi descartado
+como alvo; o projeto de contratos é o `truther-contracts`).
 
 ## 5. Infra — detalhe em operacao.md
 - **Docker Compose**: serviço `paperclip` (imagem própria `paperclip-runtime:latest`, via Dockerfile)
@@ -73,6 +85,13 @@ Rodar `.ps1`: num terminal PowerShell, ou `powershell -ExecutionPolicy Bypass -F
 - **Trava física do CTO (camada 3)** — hoje "CTO não coda" é só instrução. Objetivo: workspace
   **read-only** ("vejo, não edito") via mount `:ro`, sem cegá-lo. Ver `## ⚠️ Pendências` no AGENTS.md.
 - **Reativar Codex e Gemini** quando o fundador habilitar billing (remover os avisos OFFLINE no CTO).
+- **truther-contracts — puxar e revisar branch a branch (UMA de cada vez).** O fundador quer
+  entender cada mudança com calma; cada branch vira um tópico/task pra ele. Puxar com
+  `.\scripts\puxar.ps1 -Projeto truther-contracts -Base main -SourceBranch <branch>`. Progresso:
+  - [x] **ROD-14** (Platform Engineer — SPEC Confluent SR) — puxada, **commitada + branch no GitHub** (PR adiado até terminar o entendimento de todo o projeto). +§11 Security Model adicionada (real + cópia). Entendimento por tópico: **todos ✅** (1 wire format · 2 buf · 3 versionamento · 4 ambiente local · 5 interop · 6 proto). Aprendizado documentado em `truther-contracts/docs/visao-geral.md` (branch feat/rod-14, untracked).
+  - [ ] **ROD-15** (Go serde) — `done` no Paperclip; falta puxar.
+  - [ ] **ROD-16** (Node serde) — `done`; falta puxar.
+  - [ ] **ROD-17** (Python serde) — `done` (era falso-bloqueio de push); falta puxar. ⚠️ a branch é baseada na rod-14 (carrega o SPEC junto).
 
 ## 9. IDs de referência
 - company `207d7642-8a17-4ee7-8fbb-f63b9da66153`

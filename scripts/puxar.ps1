@@ -4,12 +4,17 @@
 #
 # Uso (a partir da raiz do repo):
 #   .\scripts\puxar.ps1 -Projeto userservice
+#   .\scripts\puxar.ps1 -Projeto truther-contracts -Base main -SourceBranch feat/rod-14-confluent-sr-spec
 #   .\scripts\puxar.ps1 -Projeto data-rudder-provider -Base master -LocalBranch feat/x
 #   .\scripts\puxar.ps1 -Projeto userservice -Force        # aplica mesmo com árvore suja
+#
+# -SourceBranch: qual branch da CÓPIA puxar (o script dá checkout nela antes). Sem isso, usa a
+#   branch que estiver atual na cópia. -LocalBranch: nome no repo real (default = SourceBranch).
 param(
   [Parameter(Mandatory = $true)][string]$Projeto,
   [string]$Base = "master",
-  [string]$LocalBranch = "revisao-agente",
+  [string]$SourceBranch = "",
+  [string]$LocalBranch = "",
   [switch]$Force,
   [string]$Container = "paperclip"
 )
@@ -27,6 +32,15 @@ $patch = Join-Path $PaperclipRoot "$Projeto-changes.patch"
 if (-not (Test-Path $repo)) { throw "Repo real nao encontrado em: $repo" }
 docker exec $Container sh -c "test -d '$Copy'" | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "Copia '$Copy' nao existe. Rode: .\scripts\espelhar.ps1 -Projeto $Projeto" }
+
+# Se pediram uma branch de origem na cópia, faz checkout dela antes de gerar o patch.
+if ($SourceBranch) {
+  Write-Host "Checkout da branch de origem na cópia: $SourceBranch" -ForegroundColor DarkCyan
+  docker exec $Container sh -c "cd $Copy && git checkout $SourceBranch" 2>&1 | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw "Nao consegui dar checkout em '$SourceBranch' na copia. Veja as branches: .\scripts\revisar.ps1 -Projeto $Projeto" }
+}
+# Nome da branch no repo real: usa -LocalBranch, senão o SourceBranch, senão o default.
+if (-not $LocalBranch) { $LocalBranch = if ($SourceBranch) { $SourceBranch } else { "revisao-agente" } }
 
 Write-Host "== [$Projeto] Gerando patch da copia ($Base..HEAD) ==" -ForegroundColor Cyan
 docker exec $Container sh -c "cd $Copy && git format-patch $Base --stdout > /tmp/uschanges.patch"
@@ -57,7 +71,7 @@ try {
   Invoke-Git checkout -b $LocalBranch
   Invoke-Git am $patch
   Write-Host "`nOK. Trabalho aplicado em '$repo' na branch '$LocalBranch'." -ForegroundColor Green
-  Write-Host "Se APROVAR: git checkout master; git merge $LocalBranch" -ForegroundColor Cyan
+  Write-Host "Se APROVAR: git checkout $Base; git merge $LocalBranch" -ForegroundColor Cyan
   Write-Host "Se REJEITAR: .\scripts\descartar.ps1 -Projeto $Projeto -LocalBranch $LocalBranch" -ForegroundColor Cyan
 }
 finally { Pop-Location }

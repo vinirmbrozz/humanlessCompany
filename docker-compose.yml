@@ -59,6 +59,8 @@ services:
       # O agente nunca escreve aqui (:ro = read-only).
       - "${DIR_PATH}/userservice:/seed/userservice:ro"
       - "${DIR_PATH}/data-rudder-provider:/seed/data-rudder-provider:ro"
+      # truther-contracts — contratos protobuf (buf + proto + gen), Node/TS. Tem git (branch main).
+      - "${DIR_PATH}/truther-contracts:/seed/truther-contracts:ro"
       # Cópias de trabalho isoladas (volume Docker, fora do OneDrive). O agente trabalha AQUI.
       # No Paperclip, aponte o cwd do workspace para: /work/userservice
       - paperclip_work:/work

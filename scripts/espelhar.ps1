@@ -40,8 +40,11 @@ if ($existe) { Write-Host "Removendo copia antiga ($work)..." -ForegroundColor Y
 Write-Host "Criando copia $work a partir de $seed (sem node_modules)..." -ForegroundColor Cyan
 Inv "mkdir -p '$work' && tar -C '$seed' --exclude=node_modules -cf - . | tar -C '$work' -xf -"
 
-Write-Host "Removendo remoto git e carimbando identidade..." -ForegroundColor Cyan
-Inv "cd '$work' && git remote remove origin 2>/dev/null; git config user.name '$GitName'; git config user.email '$GitEmail'; true"
+# Se o projeto tem git: remove o remoto (zero push) e carimba identidade.
+# Se NÃO tem git (ex.: protocol-buffer): inicializa um 'master' baseline na cópia,
+# pra o fluxo de branch/PR (revisar/puxar) funcionar.
+Write-Host "Ajustando git da cópia (remoto/identidade ou init baseline)..." -ForegroundColor Cyan
+Inv "cd '$work' && if [ -d .git ]; then git remote remove origin 2>/dev/null; git config user.name '$GitName'; git config user.email '$GitEmail'; else git init -b master >/dev/null 2>&1; git config user.name '$GitName'; git config user.email '$GitEmail'; git add -A; git commit -q -m 'chore: baseline (snapshot via espelhar)'; fi; true"
 
 $branch  = (docker exec $Container sh -c "cd '$work' && git rev-parse --abbrev-ref HEAD 2>/dev/null")
 $remotes = (docker exec $Container sh -c "cd '$work' && git remote")
