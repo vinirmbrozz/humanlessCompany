@@ -1,7 +1,8 @@
 # MEMORY — Paperclip (empresa human-less)
 
 > Documento de **memória/continuidade**: estado atual, decisões e a jornada de como chegamos aqui.
-> Para detalhe técnico, ver [`AGENTS.md`](AGENTS.md) (fonte única) e [`docs/`](docs/).
+> Para detalhe técnico, ver [`AGENTS.md`](../AGENTS.md) (fonte única) e os docs ao lado
+> (`arquitetura.md`, `operacao.md`, `paperclip-db.md`).
 > Para conversar "do zero" a qualquer momento, leia este arquivo + o `AGENTS.md`.
 
 ## 1. O que é
@@ -33,14 +34,14 @@ Claude/Codex/Gemini são **CLIs (cascas)** — a inteligência vem de um LLM **p
 - **Gemini** (Google) — instalado e key válida, mas **free tier** (limite 5 req) inviável p/ agente.
 Para destravar: habilitar **billing pago** no provedor (OpenAI / Google AI Studio) — a key não muda.
 
-## 4. Arquitetura de trabalho (cópia isolada) — detalhe em docs/arquitetura.md
+## 4. Arquitetura de trabalho (cópia isolada) — detalhe em arquitetura.md
 - Pasta real do projeto: montada **somente-leitura** em `/seed/<projeto>` (o agente NUNCA edita).
 - O agente trabalha numa **cópia** gravável em `/work/<projeto>` (volume Docker, fora do OneDrive),
   sem `node_modules`, **sem remoto git** (zero push).
 - Fluxo de PR: agente trabalha em branch isolada → fundador revisa/puxa o diff → decide o merge.
 - **Regra inegociável**: agentes nunca dão push, nunca commitam em branches do fundador.
 
-## 5. Infra — detalhe em docs/operacao.md
+## 5. Infra — detalhe em operacao.md
 - **Docker Compose**: serviço `paperclip` (imagem própria `paperclip-runtime:latest`, via Dockerfile)
   + `db` (Postgres 16 externo, porta host `127.0.0.1:5433`).
 - **Dockerfile** instala em build-time: `git`, e os CLIs `claude` + `codex` + `gemini`, + identidade git.
@@ -66,7 +67,7 @@ Rodar `.ps1`: num terminal PowerShell, ou `powershell -ExecutionPolicy Bypass -F
 - **Identidade git** baked na imagem (commits saem como Vinícius, não do dev herdado "FelpFreitas").
 - **AGENTS.md é a fonte única**; `CLAUDE.md` é só ponteiro `@AGENTS.md` (Claude + Codex leem o repo).
 - **Editar instruções de um agente**: arquivo `managed` no volume; editar com backup + `docker cp`
-  (detalhe em docs/paperclip-db.md). Confirmar na UI por ser `managed`.
+  (detalhe em paperclip-db.md). Confirmar na UI por ser `managed`.
 
 ## 8. Pendências
 - **Trava física do CTO (camada 3)** — hoje "CTO não coda" é só instrução. Objetivo: workspace
