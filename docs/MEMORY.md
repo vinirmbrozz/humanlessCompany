@@ -85,13 +85,53 @@ Rodar `.ps1`: num terminal PowerShell, ou `powershell -ExecutionPolicy Bypass -F
 - **Trava física do CTO (camada 3)** — hoje "CTO não coda" é só instrução. Objetivo: workspace
   **read-only** ("vejo, não edito") via mount `:ro`, sem cegá-lo. Ver `## ⚠️ Pendências` no AGENTS.md.
 - **Reativar Codex e Gemini** quando o fundador habilitar billing (remover os avisos OFFLINE no CTO).
-- **truther-contracts — puxar e revisar branch a branch (UMA de cada vez).** O fundador quer
-  entender cada mudança com calma; cada branch vira um tópico/task pra ele. Puxar com
-  `.\scripts\puxar.ps1 -Projeto truther-contracts -Base main -SourceBranch <branch>`. Progresso:
-  - [x] **ROD-14** (Platform Engineer — SPEC Confluent SR) — puxada, **commitada + branch no GitHub** (PR adiado até terminar o entendimento de todo o projeto). +§11 Security Model adicionada (real + cópia). Entendimento por tópico: **todos ✅** (1 wire format · 2 buf · 3 versionamento · 4 ambiente local · 5 interop · 6 proto). Aprendizado documentado em `truther-contracts/docs/visao-geral.md` (branch feat/rod-14, untracked).
-  - [ ] **ROD-15** (Go serde) — `done` no Paperclip; falta puxar.
-  - [ ] **ROD-16** (Node serde) — `done`; falta puxar.
-  - [ ] **ROD-17** (Python serde) — `done` (era falso-bloqueio de push); falta puxar. ⚠️ a branch é baseada na rod-14 (carrega o SPEC junto).
+- **✅ Harmonizar o layout dos serdes (truther-contracts) — CONCLUÍDA.** Objetivo era padrão único +
+  **um pacote publicável por linguagem** (gen + serde juntos). Resultado na main (`a589613`): cada
+  linguagem em `sdk/{go,node,python}` (serde + gen embutido via Strategy A), `gen/` como registro
+  canônico. Pendente apenas: **público vs privado dos registries** (decidir antes de publicar) e a
+  pendência nova do `gen/` stale (abaixo). Histórico de como chegamos:
+  - **ROD-21**: padrão entregue em `docs/packaging.md` (branch `feat/rod-21-packaging-standard`):
+    layout `sdk/{go,node,python}` = um pacote publicável por linguagem (gen + serde juntos), `gen/`
+    fica como registro canônico. **Decisões assinadas pelo fundador (2026-06-05):** npm
+    **`@truther/contracts`**, PyPI **`truther-contracts`**, embedding **Strategy A** (buf.gen.yaml
+    gera em `gen/` E `sdk/`). Pendente: público vs privado dos registries (decidir antes de publicar).
+  - **Conformance FEITA** (nas branches da cópia, não na main): ROD-22 Strategy A no buf.gen.yaml;
+    ROD-23 Go→`sdk/go/`; ROD-24 Node→`sdk/node/`; ROD-25 Python→`sdk/python/truther_contracts/`.
+  - **INTEGRAÇÃO na main — ✅ COMPLETA (main = `a589613`).** As 3 conformances + o padrão estão na
+    main; `sdk/go` + `sdk/node` + `sdk/python` convivem com `gen/` (Strategy A).
+    - ✅ Passo 1: `feat/rod-21-packaging-standard` (rod-21 doc + rod-22 Strategy A) — merge `c6f6e3d`.
+    - ✅ Passo 2: `feat/rod-24-node-sdk-conformance` (Node → `sdk/node/`) — merge `90e861f`.
+    - ✅ Passo 3: `feat/rod-15-go-serde` (Go, rod-15+rod-23 → `sdk/go/`) — merge `7db8364`. Aplicou
+      limpo (não tocava buf afinal; o "conflito de buf" mapeado era ruído de shell).
+    - ✅ Passo 4: `feat/rod-25-python-conformance-v2` (Python → `sdk/python/`) — merge `a589613`.
+      A v1 (`rod-25`) foi feita na base antiga e batia conflito nos `transaction_pb2.py` gerados;
+      o **Senior Python entregou a v2 sobre a main atual** (removeu o legado `gen/python/
+      truther_contracts_sdk/`, serde só em `sdk/python/truther_contracts/`). Único ajuste meu: 1 linha
+      de docstring. ⚠️ **Lição:** apontei uma "falha de layout" (o `proto/` aninhado) que era equívoco
+      MEU — o `buf generate` gera o Python **aninhado em `proto/`** (verifiquei byte-a-byte). O agente
+      estava certo; "achatar" teria QUEBRADO o Strategy A. Reforça o combinado de voltar pro agente.
+    - 📌 **GOTCHA do puxar (registrado p/ próximas integrações):** quando uma branch entra na main via
+      `git am` (hash novo), `main..<branch>` mostra os commits-pai duplicados. Ao puxar uma branch que
+      descende de outra já mergeada, **basear o patch na branch-pai/tip do que já está na main** (não em
+      `main`) — ex.: rod-24 com `-Base feat/rod-21-packaging-standard`; rod-25(v1) com `-Base 7d9d405`
+      (tip do rod-14). Mecânica por passo: puxar → push → PR → CI verde → merge → `git pull` → próximo.
+
+### Pendência nova: `gen/` está STALE (regerar tudo via buf)
+Descoberto ao integrar a rod-25: o `buf generate` HOJE gera o Python em `gen/python/`**`proto/`**`/
+transaction_pb2.py` (aninhado, com `json_name`), mas a main tem `gen/python/transaction_pb2.py`
+(plano, sem `json_name`) — gerado de quando o proto estava na raiz, antes de ir pra `proto/`.
+Provavelmente `gen/go` e `gen/node` também estão defasados. **Task pro Platform/Senior:** rodar
+`buf generate` e commitar o `gen/` regenerado (e conferir se os `sdk/` continuam batendo). Separada
+desta integração; não bloqueou os PRs porque o wire binário é idêntico (só muda JSON/descriptor-path).
+- **✅ truther-contracts — ROD-14 (SPEC) + serdes 15/16/17 integrados.** Todas na main (`a589613`):
+  ROD-14 (SPEC Confluent SR + §11 Security + `docs/visao-geral.md`, CI verde), ROD-15 (Go), ROD-16
+  (Node), ROD-17 (Python) — estes três via as branches de conformance (sdk/), ver tracker acima.
+  Fixes de CI que ficaram na rod-14 (referência): `buf format -w`, except `PACKAGE_DIRECTORY_MATCH`,
+  `.gitattributes` (proto LF), interop Go rodando de `interop/go`, `git fetch origin main:main` no job
+  de breaking.
+- **Pós-integração — apontar `interop/` para `sdk/`** (Platform Engineer): o `interop/` ainda importa
+  dos caminhos antigos; agora que as 3 conformances estão na main, é a hora de migrar pra `sdk/`
+  (era pra ser **só depois** das conformances, per `packaging.md §9.1`).
 
 ## 9. IDs de referência
 - company `207d7642-8a17-4ee7-8fbb-f63b9da66153`
@@ -102,5 +142,7 @@ Rodar `.ps1`: num terminal PowerShell, ou `powershell -ExecutionPolicy Bypass -F
 
 ## 10. Como retomar a conversa
 1. Leia este `MEMORY.md` (estado + decisões) e o `AGENTS.md` (fonte técnica única).
-2. Estado em 1 frase: **empresa human-less montada e estável; só Claude operacional; Codex e Gemini
-   esperando billing; próxima fronteira é a trava read-only do CTO (camada 3).**
+2. Estado em 1 frase: **empresa human-less montada e estável; só Claude operacional (Codex/Gemini
+   esperando billing); truther-contracts com SPEC + serdes Go/Node/Python integrados na main
+   (`a589613`, layout `sdk/`); próximas frentes: regerar `gen/` stale via buf, apontar `interop/`
+   pra `sdk/`, e a trava read-only do CTO (camada 3).**
