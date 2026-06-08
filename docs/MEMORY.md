@@ -105,8 +105,9 @@ Rodar `.ps1`: num terminal PowerShell, ou `powershell -ExecutionPolicy Bypass -F
       limpo (não tocava buf afinal; o "conflito de buf" mapeado era ruído de shell).
     - ✅ Passo 4: `feat/rod-25-python-conformance-v2` (Python → `sdk/python/`) — merge `a589613`.
       A v1 (`rod-25`) foi feita na base antiga e batia conflito nos `transaction_pb2.py` gerados;
-      o **Senior Python entregou a v2 sobre a main atual** (removeu o legado `gen/python/
-      truther_contracts_sdk/`, serde só em `sdk/python/truther_contracts/`). Único ajuste meu: 1 linha
+      o **Senior Python entregou a v2 sobre a main atual** (serde só em `sdk/python/truther_contracts/`;
+      tentou remover o legado `truther_contracts_sdk/` mas o bot o ressuscitava — só morreu na rod-26).
+      Único ajuste meu: 1 linha
       de docstring. ⚠️ **Lição:** apontei uma "falha de layout" (o `proto/` aninhado) que era equívoco
       MEU — o `buf generate` gera o Python **aninhado em `proto/`** (verifiquei byte-a-byte). O agente
       estava certo; "achatar" teria QUEBRADO o Strategy A. Reforça o combinado de voltar pro agente.
@@ -116,22 +117,41 @@ Rodar `.ps1`: num terminal PowerShell, ou `powershell -ExecutionPolicy Bypass -F
       `main`) — ex.: rod-24 com `-Base feat/rod-21-packaging-standard`; rod-25(v1) com `-Base 7d9d405`
       (tip do rod-14). Mecânica por passo: puxar → push → PR → CI verde → merge → `git pull` → próximo.
 
-### Pendência nova: `gen/` está STALE (regerar tudo via buf)
-Descoberto ao integrar a rod-25: o `buf generate` HOJE gera o Python em `gen/python/`**`proto/`**`/
-transaction_pb2.py` (aninhado, com `json_name`), mas a main tem `gen/python/transaction_pb2.py`
-(plano, sem `json_name`) — gerado de quando o proto estava na raiz, antes de ir pra `proto/`.
-Provavelmente `gen/go` e `gen/node` também estão defasados. **Task pro Platform/Senior:** rodar
-`buf generate` e commitar o `gen/` regenerado (e conferir se os `sdk/` continuam batendo). Separada
-desta integração; não bloqueou os PRs porque o wire binário é idêntico (só muda JSON/descriptor-path).
+### ✅ ROD-26 — codegen unificado no buf (resolveu o "gen/ stale" E a saga do truther_contracts_sdk)
+**Mergeada na main (`0657da5`).** O que parecia "gen/ stale" era na verdade um **conflito de DOIS
+codegens** no repo:
+- `generate.yml` (bot, rodava em TODO push): `protoc --proto_path=proto` → layout **plano** +
+  recriava `gen/python/truther_contracts_sdk/` na mão (heredoc).
+- `buf.gen.yaml` (rod-21..26, manual): `buf generate` → layout **aninhado** (`gen/<lang>/proto/...`)
+  + `sdk/` (Strategy A).
+A cada push o bot desfazia o buf. **Isso explica meu erro anterior:** eu disse que a rod-25 "removeu o
+legado `truther_contracts_sdk`" — ela removeu no PR, mas **o bot o ressuscitava na main** (por isso
+voltava). Não era falha da rod-25 nem da rod-26.
+**Decisão do fundador (2026-06-06): unificar no buf.** Entregue na rod-26 (Senior Platform):
+- `generate.yml` reescrito pra rodar `buf generate` (zero protoc/heredoc), trigger só em
+  `proto/**`+buf configs, `[skip ci]` anti-loop, `git-auto-commit` versiona `gen/`+`sdk/`.
+- **Toolchain pinada/determinística** (lição de idempotência): buf **1.70.0** em `generate.yml`+
+  `buf-ci.yml`, `protoc` 3.21.12 (apt), `protoc-gen-go` v1.31.0, `ts-proto`/`protoc-gen-js` exatos.
+- `gen/` todo regenerado aninhado em `proto/`; `gen/`==`sdk/` byte-a-byte (verifiquei).
+- Legado `truther_contracts_sdk` **removido de vez** (`git rm` que eu fiz na integração — Gap B — pois
+  seguia tracked na main; o agente não via na cópia) + coberto no `.gitignore`.
+- Loop de CI: vieram 2 achados reais (interop apontando pro caminho antigo; faltava `protoc` no runner)
+  — ambos corrigidos pelo agente. Consumidores `index.js`/`interop/harness.js` apontam pro layout buf.
+- **Lição salva:** alinhar versão de ferramenta (buf/protoc/plugins) entre o que GERA e o que o CI roda,
+  senão o bot commita diff (não-idempotente). Ver memória `tooling-version-pinning` se criada.
 - **✅ truther-contracts — ROD-14 (SPEC) + serdes 15/16/17 integrados.** Todas na main (`a589613`):
   ROD-14 (SPEC Confluent SR + §11 Security + `docs/visao-geral.md`, CI verde), ROD-15 (Go), ROD-16
   (Node), ROD-17 (Python) — estes três via as branches de conformance (sdk/), ver tracker acima.
   Fixes de CI que ficaram na rod-14 (referência): `buf format -w`, except `PACKAGE_DIRECTORY_MATCH`,
   `.gitattributes` (proto LF), interop Go rodando de `interop/go`, `git fetch origin main:main` no job
   de breaking.
-- **Pós-integração — apontar `interop/` para `sdk/`** (Platform Engineer): o `interop/` ainda importa
-  dos caminhos antigos; agora que as 3 conformances estão na main, é a hora de migrar pra `sdk/`
-  (era pra ser **só depois** das conformances, per `packaging.md §9.1`).
+- **⬜ BRIEF 2 — apontar `interop/` para `sdk/`** (próximo; Platform Engineer). Hoje o `interop/` ainda
+  **reimplementa o framing localmente** e importa o gerado (não o serde): `harness.js` →
+  `gen/node/proto/transaction_pb.js`; `interop/go` com import do proto comentado (TODO); `interop/python`
+  importa `truther_contracts_sdk` (pacote **que já não existe** — esse harness está quebrado). Objetivo:
+  os 3 harnesses importarem e exercitarem o serde `sdk/{go,node,python}` (a lib real), com round-trip
+  cross-language sem `skip`. ⚠️ Usar os caminhos pós-rod-26 (layout aninhado `proto/`, `sdk/python` =
+  pacote `truther_contracts`). Brief pronto na conversa; só depende do fundador delegar.
 
 ## 9. IDs de referência
 - company `207d7642-8a17-4ee7-8fbb-f63b9da66153`
